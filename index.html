@@ -427,6 +427,7 @@ body>footer a:hover{color:#fff}
 <script>
 /* ===== settings to edit ===== */
 const WEBHOOK = 'https://services.leadconnectorhq.com/hooks/EA4s3OoGzIAn7qsYZvGV/webhook-trigger/da9f2f33-270c-45d5-8114-8f7fb355e9a6';            // HighLevel inbound webhook URL goes here. Empty = nothing is sent.
+const FRAMES_VERSION = 4;        // raise this by 1 whenever any animation frames are replaced, so phones and browsers drop their saved copies
 const PHONE = innerWidth < 768;  // phones use their own tall frame sets (hero2-frames-m, frames-m)
 const HERO_FRAMES = PHONE ? 121 : 81;   // files in /hero2-frames-m : /hero2-frames (the drone pull-out at the top)
 const FRAME_COUNT = PHONE ? 121 : 101; // files in /frames-m : /frames (run make-frames.sh after replacing transform.mp4)
@@ -468,7 +469,7 @@ function glide(fn){ if(!touch) return fn; let cur=0,to=0,run=false;
   const copy=$('#heroCopy'),shade=$('#heroShade'),hint=$('#heroHint'),bar=$('#heroBar');
   let last=-1,prog=0;
   const want=()=>Math.min(N-1,Math.round(prog*(N-1)));
-  const load=i=>{ if(imgs[i])return; const im=new Image(); im.decoding='async'; im.onload=()=>{ const go=()=>{im.ok=true; draw()}; im.decode?im.decode().then(go,go):go() }; im.src=`${dir}/frame_${String(i+1).padStart(4,'0')}.jpg`; imgs[i]=im };
+  const load=i=>{ if(imgs[i])return; const im=new Image(); im.decoding='async'; im.onload=()=>{ const go=()=>{im.ok=true; draw()}; im.decode?im.decode().then(go,go):go() }; im.src=`${dir}/frame_${String(i+1).padStart(4,'0')}.jpg?v=${FRAMES_VERSION}`; imgs[i]=im };
   function draw(){ let i=want(); while(i>=0&&!(imgs[i]&&imgs[i].ok)) i--; if(i<0||i===last) return;
     paintFrame(ctx,cv,imgs[i]); last=i }
   function size(){ const d=Math.min(devicePixelRatio||1,innerWidth<768?1.5:2),w=Math.round(cv.clientWidth*d),h=Math.round(cv.clientHeight*d); if(cv.width===w&&cv.height===h)return; cv.width=w; cv.height=h; last=-1; draw() }
@@ -488,7 +489,7 @@ function glide(fn){ if(!touch) return fn; let cur=0,to=0,run=false;
   const cv=$('#tfCanvas'),ctx=cv.getContext('2d'),dir=innerWidth<768?'frames-m':'frames',imgs=[],caps=$$('.tf-cap'),bar=$('#tfBar'),sec=$('#transform');
   let last=-1,prog=0;
   const want=()=>Math.min(FRAME_COUNT-1,Math.round(prog*(FRAME_COUNT-1)));
-  const load=i=>{ if(imgs[i])return; const im=new Image(); im.decoding='async'; im.onload=()=>{ const go=()=>{im.ok=true; draw()}; im.decode?im.decode().then(go,go):go() }; im.src=`${dir}/frame_${String(i+1).padStart(4,'0')}.jpg`; imgs[i]=im };
+  const load=i=>{ if(imgs[i])return; const im=new Image(); im.decoding='async'; im.onload=()=>{ const go=()=>{im.ok=true; draw()}; im.decode?im.decode().then(go,go):go() }; im.src=`${dir}/frame_${String(i+1).padStart(4,'0')}.jpg?v=${FRAMES_VERSION}`; imgs[i]=im };
   function draw(){ let i=want(); while(i>=0&&!(imgs[i]&&imgs[i].ok)) i--;        // not loaded yet: fall back to the nearest earlier frame
     if(i<0||i===last) return; if(last>want()&&i<want()) {}                       // (keeps last drawn frame until a closer one is ready)
     paintFrame(ctx,cv,imgs[i]); last=i }
