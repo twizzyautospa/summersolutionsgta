@@ -230,6 +230,11 @@ body>footer a:hover{color:#fff}
 .lights .cta{display:flex;gap:10px;flex-wrap:wrap;margin-top:32px}
 .ticks{list-style:none;display:grid;gap:12px;margin-top:28px;font-weight:500}
 .ticks li{display:flex;gap:12px;align-items:flex-start}.ticks svg{width:20px;height:20px;color:var(--acc);flex:none;margin-top:3px}
+.steps-sec{position:relative;overflow:hidden;isolation:isolate}
+.steps-bg{position:absolute;inset:0;z-index:-1}
+.steps-bg video{width:100%;height:100%;object-fit:cover}
+.steps-bg::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,var(--bg) 0%,rgba(10,13,10,.66) 18%,rgba(10,13,10,.6) 78%,var(--bg) 100%)}
+.steps-sec .card{background:rgba(18,23,18,.78);-webkit-backdrop-filter:blur(10px);backdrop-filter:blur(10px)}
 .lights-bg{position:absolute;inset:0 0 0 auto;width:62%}
 .lights-bg video{width:100%;height:100%;object-fit:cover;object-position:50% 45%}
 .lights-bg::after{content:"";position:absolute;inset:0;pointer-events:none;background:linear-gradient(90deg,var(--bg) 0%,rgba(10,13,10,.72) 28%,rgba(10,13,10,.15) 62%,rgba(10,13,10,.25) 100%),linear-gradient(180deg,var(--bg) 0%,transparent 14%,transparent 86%,var(--bg) 100%)}
@@ -336,7 +341,7 @@ body>footer a:hover{color:#fff}
   </div>
 </div></section>
 
-<section id="process"><div class="wrap">
+<section id="process" class="steps-sec"><div class="steps-bg" aria-hidden="true"><video id="stepsVid" muted loop playsinline preload="none" poster="images/steps-poster.jpg"><source src="steps.mp4" type="video/mp4"></video></div><div class="wrap">
   <div class="head fade"><div class="eyebrow">How it works</div><h2>Three steps.<em>Zero runaround.</em></h2></div>
   <div class="how">
     <div class="card fade"><span>01</span><i data-lucide="message-square-text"></i><h3>Tell us about it</h3><p>Four quick taps on the form, or call. Tell us what you need and when you want it done.</p></div>
@@ -517,6 +522,10 @@ function glide(fn){ if(!touch) return fn; let cur=0,to=0,run=false;
   new IntersectionObserver(es=>es.forEach(e=>{ e.isIntersecting?v.play().catch(()=>{}):v.pause() }),{threshold:.35}).observe(v);
   b.onclick=()=>{ v.muted=!v.muted; b.setAttribute('aria-label',v.muted?'Turn sound on':'Turn sound off'); b.innerHTML=`<i data-lucide="${v.muted?'volume-x':'volume-2'}"></i>`; icons(); if(!v.muted) v.play().catch(()=>{}) };
 })();
+
+/* Three steps background clip: plays only while the section is on screen */
+(function(){ const v=$('#stepsVid'); if(!v)return; if(reduce)return;
+  new IntersectionObserver(es=>es.forEach(e=>{ e.isIntersecting?v.play().catch(()=>{}):v.pause() }),{threshold:.15}).observe(v) })();
 
 /* quote tool frame: if the tool reports its content height, fit the frame to it */
 addEventListener('message',e=>{ if(e.origin!=='https://lumiquote.dev')return; const h=+(e.data&&(e.data.height||e.data.lumiquoteHeight)); if(h>200&&h<4000) $('#lqFrame').style.height=Math.ceil(h)+'px' });
