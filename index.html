@@ -427,8 +427,9 @@ body>footer a:hover{color:#fff}
 <script>
 /* ===== settings to edit ===== */
 const WEBHOOK = 'https://services.leadconnectorhq.com/hooks/EA4s3OoGzIAn7qsYZvGV/webhook-trigger/da9f2f33-270c-45d5-8114-8f7fb355e9a6';            // HighLevel inbound webhook URL goes here. Empty = nothing is sent.
-const HERO_FRAMES = 81;         // number of files in /hero-frames (the drone pull-out at the top)
-const FRAME_COUNT = 101;        // number of files in /frames (run make-frames.sh after replacing transform.mp4)
+const PHONE = innerWidth < 768;  // phones use their own tall frame sets (hero2-frames-m, frames-m)
+const HERO_FRAMES = PHONE ? 121 : 81;   // files in /hero2-frames-m : /hero2-frames (the drone pull-out at the top)
+const FRAME_COUNT = PHONE ? 121 : 101; // files in /frames-m : /frames (run make-frames.sh after replacing transform.mp4)
 const AREAS = {Vaughan:['L4H','L4J','L4K','L4L','L6A'],Kleinburg:['L0J'],'King City':['L7B'],Thornhill:['L3T'],Markham:['L3P','L3R','L3S','L6B','L6C','L6E','L6G'],Newmarket:['L3X','L3Y'],Brampton:['L6P','L6R','L6S','L6T','L6V','L6W','L6X','L6Y','L6Z','L7A'],Burlington:['L7L','L7M','L7N','L7P','L7R','L7S','L7T']};
 /* ============================ */
 const $=(s,r=document)=>r.querySelector(s),$$=(s,r=document)=>[...r.querySelectorAll(s)];
@@ -455,6 +456,12 @@ $$('a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{const h=a.getAttrib
 function paintFrame(ctx,cv,im){ const W=cv.width,H=cv.height,iw=im.naturalWidth,ih=im.naturalHeight,k=Math.max(W/iw,H/ih);
   ctx.drawImage(im,(W-iw*k)/2,(H-ih*k)/2,iw*k,ih*k) }
 
+/* on touch screens the page scrolls in jumps, so the animation eases toward the scroll position instead of snapping to it */
+const touch=matchMedia('(pointer:coarse)').matches;
+function glide(fn){ if(!touch) return fn; let cur=0,to=0,run=false;
+  const tick=()=>{ const d=to-cur; if(Math.abs(d)<.0006){ cur=to; fn(cur); run=false; return } cur+=d*.14; fn(cur); requestAnimationFrame(tick) };
+  return p=>{ to=p; if(!run){ run=true; requestAnimationFrame(tick) } } }
+
 /* hero: drone pull-out tied to the scrollbar */
 (function(){ const sec=$('#hero'); if(reduce||!sec)return;
   const cv=$('#heroCanvas'),ctx=cv.getContext('2d'),dir=innerWidth<768?'hero2-frames-m':'hero2-frames',imgs=[],N=HERO_FRAMES;
@@ -471,8 +478,9 @@ function paintFrame(ctx,cv,im){ const W=cv.width,H=cv.height,iw=im.naturalWidth,
   setTimeout(function nx(i){ i=i||8; for(let k=0;k<6&&i<N;k++) load(i++); if(i<N) setTimeout(nx,50,i) },200);
   addEventListener('resize',size); size(); update(0);
   const calcP=()=>{const r=sec.getBoundingClientRect();return Math.max(0,Math.min(1,-r.top/(r.height-innerHeight)))};
-  if(hasGsap) ScrollTrigger.create({trigger:sec,start:'top top',end:'bottom bottom',scrub:true,onUpdate:t=>update(t.progress)});
-  else addEventListener('scroll',()=>update(calcP()),{passive:true});
+  const go=glide(update);
+  if(hasGsap) ScrollTrigger.create({trigger:sec,start:'top top',end:'bottom bottom',scrub:true,onUpdate:t=>go(t.progress)});
+  else addEventListener('scroll',()=>go(calcP()),{passive:true});
 })();
 
 /* scroll transformation: canvas image sequence */
@@ -491,8 +499,9 @@ function paintFrame(ctx,cv,im){ const W=cv.width,H=cv.height,iw=im.naturalWidth,
   setTimeout(function nx(i){ i=i||10; for(let k=0;k<6&&i<FRAME_COUNT;k++) load(i++); if(i<FRAME_COUNT) setTimeout(nx,60,i) },300);
   addEventListener('resize',size); size(); update(0);
   const calcP=()=>{const r=sec.getBoundingClientRect();return Math.max(0,Math.min(1,-r.top/(r.height-innerHeight)))};
-  if(hasGsap) ScrollTrigger.create({trigger:sec,start:'top top',end:'bottom bottom',scrub:true,onUpdate:s=>update(s.progress)});
-  else addEventListener('scroll',()=>update(calcP()),{passive:true});
+  const go=glide(update);
+  if(hasGsap) ScrollTrigger.create({trigger:sec,start:'top top',end:'bottom bottom',scrub:true,onUpdate:s=>go(s.progress)});
+  else addEventListener('scroll',()=>go(calcP()),{passive:true});
 })();
 
 /* count-up stats */
