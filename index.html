@@ -68,7 +68,8 @@ h3{font-weight:700;letter-spacing:-.02em;font-size:24px;line-height:1.15}
 .hero{padding:0;height:300vh}
 .hero-pin{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;display:flex;align-items:flex-end;isolation:isolate;background:#000}
 .hero canvas,.hero .poster{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:-2}
-.hero-shade{position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(10,13,10,.55),rgba(10,13,10,.15) 35%,rgba(10,13,10,.92) 100%),linear-gradient(90deg,rgba(10,13,10,.6),transparent 70%)}
+.hero-shade{position:absolute;inset:0;z-index:-1;pointer-events:none;background:linear-gradient(180deg,rgba(10,13,10,.4),rgba(10,13,10,.08) 30%,rgba(10,13,10,.2) 60%,rgba(10,13,10,.62) 100%),linear-gradient(90deg,rgba(10,13,10,.32),transparent 70%)}
+#heroCopy h1,#heroCopy p,.tf-cap h2{text-shadow:0 1px 3px rgba(0,0,0,.45),0 2px 22px rgba(0,0,0,.5)}
 .hero .wrap{width:100%;padding-top:130px;padding-bottom:clamp(40px,7vh,80px);will-change:opacity,transform}
 .hero-hint{position:absolute;right:var(--pad);bottom:22px;font:500 11px var(--mono);letter-spacing:.14em;text-transform:uppercase;color:rgba(255,255,255,.7);display:flex;align-items:center;gap:8px}
 .hero-hint svg{width:14px;height:14px}
@@ -82,7 +83,7 @@ h3{font-weight:700;letter-spacing:-.02em;font-size:24px;line-height:1.15}
 .tf{padding:0;height:400vh}
 .tf-pin{position:sticky;top:0;height:100vh;height:100svh;overflow:hidden;background:#000}
 .tf canvas{width:100%;height:100%}
-.tf-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,10,.5),transparent 30%,transparent 55%,rgba(10,13,10,.85));pointer-events:none}
+.tf-shade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(10,13,10,.5),transparent 24%,transparent 60%,rgba(10,13,10,.72));pointer-events:none}
 .tf-cap{position:absolute;left:var(--pad);right:var(--pad);bottom:clamp(60px,12vh,120px);opacity:0;pointer-events:none}
 .tf-cap h2{font-size:clamp(40px,7vw,96px)}
 .tf-label{position:absolute;top:96px;left:var(--pad)}
@@ -453,18 +454,20 @@ $$('a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{const h=a.getAttrib
    of the shot is visible, with a soft blurred copy of the same frame filling the space above and below it.
    PHONE_ZOOM_OUT = how much of the screen height the sharp picture takes (1 = fill the screen, zoomed in like before). */
 const PHONE_ZOOM_OUT = 0.56;
-const _blur=document.createElement('canvas'),_band=document.createElement('canvas');
+const _blur=document.createElement('canvas'),_band=document.createElement('canvas'),_mask=document.createElement('canvas');
+_blur.width=24; _blur.height=14;
 function paintFrame(ctx,cv,im,centre){ const W=cv.width,H=cv.height,iw=im.naturalWidth,ih=im.naturalHeight;
   const cover=Math.max(W/iw,H/ih);
   if(H<=W*1.15||PHONE_ZOOM_OUT>=1){ ctx.drawImage(im,(W-iw*cover)/2,(H-ih*cover)/2,iw*cover,ih*cover); return }
-  _blur.width=24; _blur.height=Math.round(24*ih/iw); const b=_blur.getContext('2d'); b.drawImage(im,0,0,_blur.width,_blur.height);
-  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='high';
-  ctx.drawImage(_blur,(W-iw*cover*1.15)/2,(H-ih*cover*1.15)/2,iw*cover*1.15,ih*cover*1.15);
-  ctx.fillStyle='rgba(10,13,10,.45)'; ctx.fillRect(0,0,W,H);
-  const h=Math.round(H*PHONE_ZOOM_OUT),k=h/ih,w=Math.round(iw*k),y=Math.round(Math.max(0,Math.min(H-h,H*centre-h/2)));
-  _band.width=W; _band.height=h; const c=_band.getContext('2d'); c.globalCompositeOperation='source-over'; c.drawImage(im,(W-w)/2,0,w,h);
-  const g=c.createLinearGradient(0,0,0,h),top=y<=0?1:0; g.addColorStop(0,`rgba(0,0,0,${top})`); g.addColorStop(.14,'#000'); g.addColorStop(.84,'#000'); g.addColorStop(1,'rgba(0,0,0,0)');
-  c.globalCompositeOperation='destination-in'; c.fillStyle=g; c.fillRect(0,0,W,h);
+  _blur.getContext('2d').drawImage(im,0,0,24,14);
+  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='low';
+  const bk=Math.max(W/24,H/14)*1.15; ctx.drawImage(_blur,(W-24*bk)/2,(H-14*bk)/2,24*bk,14*bk);
+  ctx.fillStyle='rgba(10,13,10,.3)'; ctx.fillRect(0,0,W,H);
+  const k=Math.max(H*PHONE_ZOOM_OUT/ih,W/iw),h=Math.round(ih*k),w=Math.round(iw*k),y=Math.round(Math.max(0,Math.min(H-h,H*centre-h/2)));
+  if(_band.width!==W||_band.height!==h||_mask.top!==(y<=0)){ _band.width=_mask.width=W; _band.height=_mask.height=h; _mask.top=(y<=0);
+    const m=_mask.getContext('2d'),g=m.createLinearGradient(0,0,0,h); g.addColorStop(0,`rgba(0,0,0,${y<=0?1:0})`); g.addColorStop(.14,'#000'); g.addColorStop(.84,'#000'); g.addColorStop(1,'rgba(0,0,0,0)'); m.fillStyle=g; m.fillRect(0,0,W,h) }
+  const c=_band.getContext('2d'); c.globalCompositeOperation='copy'; c.drawImage(_mask,0,0);
+  c.globalCompositeOperation='source-in'; c.drawImage(im,(W-w)/2,0,w,h);
   ctx.drawImage(_band,0,y) }
 
 /* hero: drone pull-out tied to the scrollbar */
@@ -473,10 +476,10 @@ function paintFrame(ctx,cv,im,centre){ const W=cv.width,H=cv.height,iw=im.natura
   const copy=$('#heroCopy'),shade=$('#heroShade'),hint=$('#heroHint'),bar=$('#heroBar');
   let last=-1,prog=0;
   const want=()=>Math.min(N-1,Math.round(prog*(N-1)));
-  const load=i=>{ if(imgs[i])return; const im=new Image(); im.decoding='async'; im.onload=()=>{im.ok=true; draw()}; im.src=`${dir}/frame_${String(i+1).padStart(4,'0')}.jpg`; imgs[i]=im };
+  const load=i=>{ if(imgs[i])return; const im=new Image(); im.decoding='async'; im.onload=()=>{ const go=()=>{im.ok=true; draw()}; im.decode?im.decode().then(go,go):go() }; im.src=`${dir}/frame_${String(i+1).padStart(4,'0')}.jpg`; imgs[i]=im };
   function draw(){ let i=want(); while(i>=0&&!(imgs[i]&&imgs[i].ok)) i--; if(i<0||i===last) return;
     paintFrame(ctx,cv,imgs[i],0.34); last=i }
-  function size(){ const d=Math.min(devicePixelRatio||1,2); cv.width=cv.clientWidth*d; cv.height=cv.clientHeight*d; last=-1; draw() }
+  function size(){ const d=Math.min(devicePixelRatio||1,2),w=Math.round(cv.clientWidth*d),h=Math.round(cv.clientHeight*d); if(cv.width===w&&cv.height===h)return; cv.width=w; cv.height=h; last=-1; draw() }
   function update(p){ prog=p; draw(); bar.style.transform=`scaleX(${p})`;
     hint.style.opacity=Math.max(0,1-p/0.12).toFixed(3) }
   for(let i=0;i<Math.min(8,N);i++) load(i);
@@ -492,11 +495,11 @@ function paintFrame(ctx,cv,im,centre){ const W=cv.width,H=cv.height,iw=im.natura
   const cv=$('#tfCanvas'),ctx=cv.getContext('2d'),dir=innerWidth<768?'frames-m':'frames',imgs=[],caps=$$('.tf-cap'),bar=$('#tfBar'),sec=$('#transform');
   let last=-1,prog=0;
   const want=()=>Math.min(FRAME_COUNT-1,Math.round(prog*(FRAME_COUNT-1)));
-  const load=i=>{ if(imgs[i])return; const im=new Image(); im.decoding='async'; im.onload=()=>{im.ok=true; draw()}; im.src=`${dir}/frame_${String(i+1).padStart(4,'0')}.jpg`; imgs[i]=im };
+  const load=i=>{ if(imgs[i])return; const im=new Image(); im.decoding='async'; im.onload=()=>{ const go=()=>{im.ok=true; draw()}; im.decode?im.decode().then(go,go):go() }; im.src=`${dir}/frame_${String(i+1).padStart(4,'0')}.jpg`; imgs[i]=im };
   function draw(){ let i=want(); while(i>=0&&!(imgs[i]&&imgs[i].ok)) i--;        // not loaded yet: fall back to the nearest earlier frame
     if(i<0||i===last) return; if(last>want()&&i<want()) {}                       // (keeps last drawn frame until a closer one is ready)
     paintFrame(ctx,cv,imgs[i],0.46); last=i }
-  function size(){ const d=Math.min(devicePixelRatio||1,2); cv.width=cv.clientWidth*d; cv.height=cv.clientHeight*d; last=-1; draw() }
+  function size(){ const d=Math.min(devicePixelRatio||1,2),w=Math.round(cv.clientWidth*d),h=Math.round(cv.clientHeight*d); if(cv.width===w&&cv.height===h)return; cv.width=w; cv.height=h; last=-1; draw() }
   function update(p){ prog=p; draw(); bar.style.transform=`scaleX(${p})`;
     caps.forEach(c=>{const a=+c.dataset.at,d=Math.abs(p-(a===0?0.05:a)); c.style.opacity=Math.max(0,1-d/0.16).toFixed(3); c.style.transform=`translateY(${((a-p)*80).toFixed(1)}px)`}) }
   for(let i=0;i<Math.min(10,FRAME_COUNT);i++) load(i);
