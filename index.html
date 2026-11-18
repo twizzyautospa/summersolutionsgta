@@ -260,6 +260,13 @@ body>footer a:hover{color:#fff}
   .nav .btn{display:none}
 }
 @media(max-width:700px){.lq iframe{height:740px}}
+@media(max-width:767px) and (orientation:portrait){
+  .hero-pin,.tf-pin{background:#0A0D0A}
+  .hero canvas,.hero .poster{inset:0 0 auto 0;height:62svh}
+  .hero-shade{background:linear-gradient(180deg,rgba(10,13,10,.4) 0,rgba(10,13,10,.08) 20svh,rgba(10,13,10,.3) 40svh,#0A0D0A 62svh)}
+  .tf canvas{position:absolute;left:0;top:15svh;height:58svh}
+  .tf-shade{background:linear-gradient(180deg,#0A0D0A 15svh,rgba(10,13,10,0) 24svh,rgba(10,13,10,0) 60svh,#0A0D0A 73svh)}
+}
 @media(max-width:560px){.hero-hint{display:none}.svc,.work{grid-template-columns:1fr}.mini b{font-size:21px}.brand{font-size:14px}}
 @media(prefers-reduced-motion:reduce){.hero{height:auto}.hero-pin{position:relative}.hero canvas,.hero-hint,.hero-bar{display:none}.fade{opacity:1;transform:none}.tf{height:auto;padding:90px 0}.tf-pin{display:none}.tf-fallback{display:block}}
 </style>
@@ -444,31 +451,16 @@ addEventListener('scroll',()=>$('#nav').classList.toggle('on',scrollY>30),{passi
 const hasGsap=!!window.gsap&&!!window.ScrollTrigger; let lenis=null;
 const showAll=()=>$$('.fade').forEach(e=>{e.style.opacity=1;e.style.transform='none'});
 if(hasGsap){ gsap.registerPlugin(ScrollTrigger);
-  if(window.Lenis&&!reduce){ lenis=new Lenis({lerp:.11}); lenis.on('scroll',ScrollTrigger.update); gsap.ticker.add(t=>lenis.raf(t*1000)); gsap.ticker.lagSmoothing(0) }
+  if(window.Lenis&&!reduce&&!matchMedia('(pointer:coarse)').matches){  /* phones keep their own native scrolling */ lenis=new Lenis({lerp:.11}); lenis.on('scroll',ScrollTrigger.update); gsap.ticker.add(t=>lenis.raf(t*1000)); gsap.ticker.lagSmoothing(0) }
   if(!reduce) ScrollTrigger.batch('.fade',{start:'top 90%',once:true,onEnter:b=>gsap.to(b,{opacity:1,y:0,duration:.8,ease:'power3.out',stagger:.08})}); else showAll();
 } else showAll();
 const goTo=sel=>{const el=$(sel); if(!el)return; lenis?lenis.scrollTo(el,{offset:-70}):el.scrollIntoView({behavior:reduce?'auto':'smooth'})};
 $$('a[href^="#"]').forEach(a=>a.addEventListener('click',e=>{const h=a.getAttribute('href'); if(h.length>1&&$(h)){e.preventDefault();goTo(h)}}));
 
-/* draws one animation frame. Wide screens: fills the panel. Tall (phone) screens: zoomed out so about twice as much
-   of the shot is visible, with a soft blurred copy of the same frame filling the space above and below it.
-   PHONE_ZOOM_OUT = how much of the screen height the sharp picture takes (1 = fill the screen, zoomed in like before). */
-const PHONE_ZOOM_OUT = 0.56;
-const _blur=document.createElement('canvas'),_band=document.createElement('canvas'),_mask=document.createElement('canvas');
-_blur.width=24; _blur.height=14;
-function paintFrame(ctx,cv,im,centre){ const W=cv.width,H=cv.height,iw=im.naturalWidth,ih=im.naturalHeight;
-  const cover=Math.max(W/iw,H/ih);
-  if(H<=W*1.15||PHONE_ZOOM_OUT>=1){ ctx.drawImage(im,(W-iw*cover)/2,(H-ih*cover)/2,iw*cover,ih*cover); return }
-  _blur.getContext('2d').drawImage(im,0,0,24,14);
-  ctx.imageSmoothingEnabled=true; ctx.imageSmoothingQuality='low';
-  const bk=Math.max(W/24,H/14)*1.15; ctx.drawImage(_blur,(W-24*bk)/2,(H-14*bk)/2,24*bk,14*bk);
-  ctx.fillStyle='rgba(10,13,10,.3)'; ctx.fillRect(0,0,W,H);
-  const k=Math.max(H*PHONE_ZOOM_OUT/ih,W/iw),h=Math.round(ih*k),w=Math.round(iw*k),y=Math.round(Math.max(0,Math.min(H-h,H*centre-h/2)));
-  if(_band.width!==W||_band.height!==h||_mask.top!==(y<=0)){ _band.width=_mask.width=W; _band.height=_mask.height=h; _mask.top=(y<=0);
-    const m=_mask.getContext('2d'),g=m.createLinearGradient(0,0,0,h); g.addColorStop(0,`rgba(0,0,0,${y<=0?1:0})`); g.addColorStop(.14,'#000'); g.addColorStop(.84,'#000'); g.addColorStop(1,'rgba(0,0,0,0)'); m.fillStyle=g; m.fillRect(0,0,W,h) }
-  const c=_band.getContext('2d'); c.globalCompositeOperation='copy'; c.drawImage(_mask,0,0);
-  c.globalCompositeOperation='source-in'; c.drawImage(im,(W-w)/2,0,w,h);
-  ctx.drawImage(_band,0,y) }
+/* draws one animation frame so it fills its canvas. On phones the canvas is a shorter picture area (set in the
+   phone CSS block), so more of the shot is visible and the rest of the screen is plain dark, no blur. */
+function paintFrame(ctx,cv,im){ const W=cv.width,H=cv.height,iw=im.naturalWidth,ih=im.naturalHeight,k=Math.max(W/iw,H/ih);
+  ctx.drawImage(im,(W-iw*k)/2,(H-ih*k)/2,iw*k,ih*k) }
 
 /* hero: drone pull-out tied to the scrollbar */
 (function(){ const sec=$('#hero'); if(reduce||!sec)return;
@@ -478,8 +470,8 @@ function paintFrame(ctx,cv,im,centre){ const W=cv.width,H=cv.height,iw=im.natura
   const want=()=>Math.min(N-1,Math.round(prog*(N-1)));
   const load=i=>{ if(imgs[i])return; const im=new Image(); im.decoding='async'; im.onload=()=>{ const go=()=>{im.ok=true; draw()}; im.decode?im.decode().then(go,go):go() }; im.src=`${dir}/frame_${String(i+1).padStart(4,'0')}.jpg`; imgs[i]=im };
   function draw(){ let i=want(); while(i>=0&&!(imgs[i]&&imgs[i].ok)) i--; if(i<0||i===last) return;
-    paintFrame(ctx,cv,imgs[i],0.34); last=i }
-  function size(){ const d=Math.min(devicePixelRatio||1,2),w=Math.round(cv.clientWidth*d),h=Math.round(cv.clientHeight*d); if(cv.width===w&&cv.height===h)return; cv.width=w; cv.height=h; last=-1; draw() }
+    paintFrame(ctx,cv,imgs[i]); last=i }
+  function size(){ const d=Math.min(devicePixelRatio||1,innerWidth<768?1.5:2),w=Math.round(cv.clientWidth*d),h=Math.round(cv.clientHeight*d); if(cv.width===w&&cv.height===h)return; cv.width=w; cv.height=h; last=-1; draw() }
   function update(p){ prog=p; draw(); bar.style.transform=`scaleX(${p})`;
     hint.style.opacity=Math.max(0,1-p/0.12).toFixed(3) }
   for(let i=0;i<Math.min(8,N);i++) load(i);
@@ -498,8 +490,8 @@ function paintFrame(ctx,cv,im,centre){ const W=cv.width,H=cv.height,iw=im.natura
   const load=i=>{ if(imgs[i])return; const im=new Image(); im.decoding='async'; im.onload=()=>{ const go=()=>{im.ok=true; draw()}; im.decode?im.decode().then(go,go):go() }; im.src=`${dir}/frame_${String(i+1).padStart(4,'0')}.jpg`; imgs[i]=im };
   function draw(){ let i=want(); while(i>=0&&!(imgs[i]&&imgs[i].ok)) i--;        // not loaded yet: fall back to the nearest earlier frame
     if(i<0||i===last) return; if(last>want()&&i<want()) {}                       // (keeps last drawn frame until a closer one is ready)
-    paintFrame(ctx,cv,imgs[i],0.46); last=i }
-  function size(){ const d=Math.min(devicePixelRatio||1,2),w=Math.round(cv.clientWidth*d),h=Math.round(cv.clientHeight*d); if(cv.width===w&&cv.height===h)return; cv.width=w; cv.height=h; last=-1; draw() }
+    paintFrame(ctx,cv,imgs[i]); last=i }
+  function size(){ const d=Math.min(devicePixelRatio||1,innerWidth<768?1.5:2),w=Math.round(cv.clientWidth*d),h=Math.round(cv.clientHeight*d); if(cv.width===w&&cv.height===h)return; cv.width=w; cv.height=h; last=-1; draw() }
   function update(p){ prog=p; draw(); bar.style.transform=`scaleX(${p})`;
     caps.forEach(c=>{const a=+c.dataset.at,d=Math.abs(p-(a===0?0.05:a)); c.style.opacity=Math.max(0,1-d/0.16).toFixed(3); c.style.transform=`translateY(${((a-p)*80).toFixed(1)}px)`}) }
   for(let i=0;i<Math.min(10,FRAME_COUNT);i++) load(i);
